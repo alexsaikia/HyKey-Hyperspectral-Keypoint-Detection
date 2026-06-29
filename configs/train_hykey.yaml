@@ -1,0 +1,67 @@
+# HyKey training configuration (hyperspectral keypoint detector).
+model:
+  model_name: "hykey"       # identifier used in checkpoint filenames / run names
+  input_channels: 16        # number of HSI bands fed to the network
+  learning_rate: 3e-4       # base AdamW learning rate (warmed up over warmup_steps)
+
+  # Network architecture
+  c1: 32                    # channels out of 3D-CNN encoder stage 1
+  c2: 64                    # channels out of 3D-CNN encoder stage 2
+  c3: 128                   # channels out of 3D-CNN encoder stage 3 (fused into the 2D head)
+
+  # Detection
+  top_k: 400                # max keypoints kept per image by the detector
+
+  # Loss weights (0 disables that term). See HyKey.init_loss_functions.
+  w_pk: 0.5                 # peakiness loss (sharpens the score map around keypoints)
+  w_rp: 1.0                 # reprojection localization loss (keypoint position accuracy)
+  w_sp: 1.0                 # score-map reliability loss (detection confidence vs. matchability)
+  w_ds: 5.0                 # descriptor reprojection loss (main descriptor matching objective)
+  w_epi: 0.1                # epipolar regularizer weight (needs a warm-start checkpoint; see train_hykey.py guardrail)
+  temp_des: 0.1             # descriptor matching softmax temperature
+  temp_rel: 0.1             # score-map reliability loss softmax temperature
+
+dataset:
+  # Path to the HyKey Dataset root (see README "HyKey Dataset" section).
+  spectral_data_root: "./data/spectral"
+  test_set_config_path: "configs/test_set.yaml"              # held-out test scenes (excluded from train)
+  validation_set_config_path: "configs/validation_set.yaml"  # validation scenes (excluded from train/test)
+  # Calibration intrinsics + RGB<->HSI homographies ship inside the dataset.
+  # null -> auto-derive as <spectral_data_root>/calibration.
+  calibration_dir: null
+  load_rgb: False           # load RGB-camera frames (HyKey trains on HSI only, but RGB is available for eval with other models)
+  load_hsi: True            # load hyperspectral cubes (the model input)
+  load_poses: True          # load camera poses (required for nonplanar / epipolar supervision)
+  aug_strength: 0.25        # photometric augmentation intensity [0-1]
+  target_space: "hsi"       # coordinate space frames are registered into ('hsi' | 'rgb'), only needed if comparing hsi and rgb
+  radiometric_calibration: False                # True -> reflectance input (needs white/dark refs)
+  warp_augmentation: True                       # synthesize a planar homography-warped view for supervision
+  warp_difficulty: paper                        # planar-warp strength: 'paper' (default) | 'harder'
+  photometric_augmentation: True               # apply photometric jitter to the planar pair
+  photometric_augmentation_nonplanar: True     # apply photometric jitter to the nonplanar (real second) frame
+  always_include_nonplanar: True               # always pair each frame with a real later frame (epipolar branch)
+  enable_nonplanar_val: True                    # compute nonplanar/pose metrics during validation
+  enable_nonplanar_test: True                   # compute nonplanar/pose metrics during testing
+  nonplanar_stride_train: 20                    # temporal subsampling stride for nonplanar pairs (train split)
+  nonplanar_stride_val: 20                      # temporal subsampling stride for nonplanar pairs (val split)
+  nonplanar_stride_test: 20                     # temporal subsampling stride for nonplanar pairs (test split)
+
+training:
+  batch_size: 6             # frames per training step
+  num_epochs: 20            # total training epochs
+  num_workers: 16           # dataloader worker processes
+  accelerator: "gpu"        # PyTorch Lightning accelerator ('gpu' | 'cpu')
+  devices: 1                # number of devices to train on
+  log_every_n_steps: 1      # logging frequency (training steps)
+  val_check_interval: 0.5   # run validation every half-epoch
+  monitor: "val/metrics/mean"   # metric tracked for checkpointing / early stopping
+  mode: "max"               # 'max' since higher matching accuracy is better
+  save_top_k: 5             # keep the best K checkpoints by `monitor`
+  save_weights_only: true   # store weights only (no optimizer/scheduler state)
+  checkpoint_dirpath: "checkpoints"   # output directory for checkpoints
+  num_sanity_val_steps: 1   # validation batches to dry-run before training starts
+  early_stopping_patience: 10       # epochs without improvement before stopping 
+  early_stopping_min_delta: 0.001   # minimum `monitor` gain counted as an improvement
+  warmup_steps: 500         # linear LR warmup steps before the constant schedule
+  gradient_clip_val: 1.0    # gradient-norm clipping threshold
+  gradient_clip_algorithm: "norm"   # clip by gradient norm

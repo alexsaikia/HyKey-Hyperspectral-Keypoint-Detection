@@ -1,0 +1,53 @@
+# HyKey evaluation configuration (planar MMA + pairwise pose metrics).
+dataset:
+  spectral_data_root: "./data/spectral"
+  spectral_acquisition_folders: null
+  test_set_config_path: "configs/test_set.yaml"
+  load_rgb: false
+  load_hsi: true
+  load_poses: true            
+  aug_strength: 0.0
+  registration: true
+  band_stats_path: "configs/band_stats.npz"
+  target_space: "hsi"
+  undistort: false
+  random_state: 42
+  radiometric_calibration: false
+  warp_augmentation: true
+  warp_difficulty: paper  # planar-warp strength: 'paper' (default) | 'harder'
+
+training:
+  batch_size: 1
+  num_workers: 8
+  accelerator: "gpu"
+  devices: 1
+  persistent_workers: true
+
+evaluation:
+  test_set_path: "configs/test_set.yaml"
+  thresholds: [1, 3, 5, 10, 20]     # pixel thresholds for planar (MMA) evaluation
+  pose_auc_degs: [1, 3, 5, 10, 20]  # degree thresholds for pose success rates
+  max_keypoints: 400
+  device: "cuda"
+  enable_planar: true
+  enable_nonplanar: true
+  nonplanar_step: 25                
+  output_dir: "hykey_eval"
+  write_per_pair_csv: true
+  save_visualizations: false
+  save_success_curves: true
+  csv_buffer_size: 10
+  tqdm_disable: false
+  enable_plots: true
+  max_batches_per_scene: 500
+  modalities: ["HSI"]
+  allow_tf32: true
+  matmul_precision: "high"
+  pair_mode: "auto"                 # 'auto' | 'warped'
+  models: ["hykey"]
+  model_checkpoint_dirs:
+    # Ships with the HyKey Dataset under checkpoints/hykey/ (see README "Checkpoints").
+    hykey:
+      - "./checkpoints/hykey"
+  use_wandb: false
+  list_models: false

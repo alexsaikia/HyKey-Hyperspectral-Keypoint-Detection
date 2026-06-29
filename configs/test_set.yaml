@@ -1,0 +1,14 @@
+# Held-out test scenes (excluded from training/validation).
+# Folder names must match directories under `spectral_data_root`.
+spectral:
+  acquisition_folders:
+    - "K4_lap_far_acquisition_2024-08-28_22-52-41"
+    - "K4_lap_trocar_acquisition_2024-08-28_22-34-51"
+    - "K4_lap_close_acquisition_2024-08-28_22-48-52"
+    - "K4_surg_far_acquisition_2024-08-28_22-56-32"
+    - "K4_surg_trocar_acquisition_2024-08-28_22-38-33"
+    - "K4_surg_close_acquisition_2024-08-28_22-43-23"
+    - "L1_lap_far_acquisition_2024-08-28_23-14-42"
+    - "L1_lap_trocar_acquisition_2024-08-28_23-27-20"
+    - "L1_surg_far_acquisition_2024-08-28_23-19-02"
+    - "L1_surg_trocar_acquisition_2024-08-28_23-24-03"
