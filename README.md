@@ -1,50 +1,44 @@
 
-<p align="center">
-  <h1 align="center">IPCAI 2026: HyKey - Hyperspectral Keypoint Detection and Matching in Minimally Invasive Surgery</h1>
-  <p align="center">
-    <strong>Alexander Saikia</strong>
-    &nbsp;·&nbsp;
-    <strong>Chiara Di Vece</strong>
-    &nbsp;·&nbsp;
-    <strong>Zhehua Mao</strong>
-    &nbsp;·&nbsp;
-    <strong>Sierra Bonilla</strong>
-    &nbsp;·&nbsp;
-    <strong>Chloe He</strong>
-    &nbsp;·&nbsp;
-    <strong>Joao Ramalhinho</strong>
-    &nbsp;·&nbsp;
-    <strong>Tobias Czempiel</strong>
-    &nbsp;·&nbsp;
-    <strong>Sophia Bano</strong>
-    &nbsp;·&nbsp;
-    <strong>Danail Stoyanov</strong>
-  </p>
-  <h3 align="center"><a href="https://link.springer.com/article/10.1007/s11548-026-03633-z">Paper</a> | <a href="https://doi.org/10.5522/04/32793294">Dataset & Weights</a></h3>
-  <div align="center"></div>
-</p>
 
-<p align="center">
-  <img src="assets/spectral_matches.gif" width="100%" alt="HyKey vs RGB baselines: 5-column spectral matching comparison">
-</p>
+# IPCAI 2026: HyKey - Hyperspectral Keypoint Detection and Matching in Minimally Invasive Surgery
 
-## Abstract
-### Purpose
-3D reconstruction in minimally invasive surgery (MIS) enables enhanced surgical guidance through improved visualisation, tool tracking, and augmented reality. However, traditional RGB-based keypoint detection and matching pipelines struggle with surgical challenges, such as poor texture and complex illumination. We investigate whether using snapshot hyperspectral imaging (HSI) can provide improved results on keypoint detection and matching surgical scenes.
+**Alexander Saikia**  ·  **Chiara Di Vece**  ·  **Zhehua Mao**  ·  **Sierra Bonilla**  ·  **Chloe He**  ·  **Joao Ramalhinho**  ·  **Tobias Czempiel**  ·  **Sophia Bano**  ·  **Danail Stoyanov**
 
-### Methods
-We developed HyKey, a hyperspectral keypoint detection and description model made up of a hybrid 3D-2D convolutional neural network that jointly extracts spatial-spectral features from HSI. The model was trained using synthetic homographic augmentation and epipolar geometry constraints on a robotically acquired dual-camera RGB-HSI laparoscopic dataset of ex vivo organs with calibrated camera poses. We benchmarked performance against established RGB-based methods, including SuperPoint and ALIKE.
+### [Paper](https://link.springer.com/article/10.1007/s11548-026-03633-z) | [Dataset & Weights](https://doi.org/10.5522/04/32793294)
 
-### Results
-Our HSI-based model outperformed RGB baselines on registered RGB frames, achieving 96.62% mean matching accuracy and 67.18% mean average accuracy at 10
- on pose estimation, demonstrating consistent improvements across multiple evaluation metrics.
+---
 
-### Conclusion
-Integrating spectral information from an HSI cube offers a promising approach for robust monocular 3D reconstruction in MIS, addressing limitations of texture-poor surgical environments through enhanced spectral-spatial feature discrimination.
+## 📝 Citation
 
-<p align="center">
-  <img src="assets/hsi_explained.png" width="90%" alt="RGB vs 16-band HSI and per-pixel spectra">
-</p>
+If you use our data for your publication, please cite our work.
+
+The hyperspectral data and release paper:
+
+```bibtex
+@article{saikia2026hykey,
+  title={HyKey: hyperspectral keypoint detection and matching in minimally invasive surgery},
+  author={Saikia, Alexander and Di Vece, Chiara and Mao, Zhehua and Bonilla, Sierra and He, Chloe and Ramalhinho, Joao and Czempiel, Tobias and Bano, Sophia and Stoyanov, Danail},
+  journal={International Journal of Computer Assisted Radiology and Surgery},
+  pages={1--9},
+  year={2026},
+  publisher={Springer}
+}
+```
+
+The robotic arm acquisition platform for acquiring the data:
+
+```bibtex
+@article{saikia2025robotic,
+  title={Robotic arm platform for multi-view image acquisition and 3d reconstruction in minimally invasive surgery},
+  author={Saikia, Alexander and Di Vece, Chiara and Bonilla, Sierra and He, Chloe and Magbagbeola, Morenike and Mennillo, Laurent and Czempiel, Tobias and Bano, Sophia and Stoyanov, Danail},
+  journal={IEEE Robotics and Automation Letters},
+  volume={10},
+  number={4},
+  pages={3174--3181},
+  year={2025},
+  publisher={IEEE}
+}
+```
 
 ---
 
@@ -68,39 +62,13 @@ Tested with Python 3.11 and PyTorch 2.4 (CUDA 12.1). A GPU is recommended for tr
 
 ---
 
-## 🔬 Method
-
-HyKey is a hybrid 3D-2D CNN tailored to hyperspectral input. Given an HSI cube `I ∈ R^(C×H×W)` (with `C = 16` bands in our system), the network (i) detects a set of repeatable keypoints and (ii) computes L2-normalised local descriptors, so that correspondences between views can feed standard geometric estimators (homography, essential/fundamental matrix) for 3D reconstruction and camera tracking in MIS scenes. The 3D convolutions capture spectral-spatial correlations early, while a lightweight 2D head produces a keypoint score map and dense descriptors at full image resolution. This design is preferred over transformer-heavy alternatives because surgical HSI training data are scarce and real-time constraints make large transformers impractical in the operating room.
-
-<p align="center">
-  <img src="assets/architecture.png" width="100%" alt="HyKey spectral-spatial network architecture">
-</p>
-
-**3D spectral-spatial encoder.** The cube passes through three 3D convolution blocks. Each block contains two 3×3×3 convolutional layers with stride `(2,1,1)` (halving the spectral bands at each convolution) and outputs `c_i` channels (`c_1 = 32`, `c_2 = 64`, `c_3 = 128`), followed by a `(1,2,2)` spatial max-pool. Each block therefore produces an output of shape `[c_i, C_in/4, H_in/2, W_in/2]`.
-
-**Feature aggregation.** The three encoder outputs are average-pooled across the spectral dimension (collapsing it to a single channel), then bilinearly upsampled to the original spatial resolution and concatenated along channels, giving an aggregated feature block `F ∈ R^((c_1+c_2+c_3)×H×W)`.
-
-**2D convolutional head.** Two 3×3 convolutions are applied to `F`. The first produces `D` channels and is followed by batch normalisation and ReLU; the second produces `D+1` channels, split into a score map `S` (sigmoid activation) and a `D`-channel descriptor map, with descriptors L2-normalised per pixel.
-
-**Differentiable keypoint detection.** The score map `S` feeds a DKD module (ALIKE/ALIKED-style) that performs differentiable keypoint extraction via soft selection within a local window, rather than non-differentiable NMS. This preserves gradient flow for end-to-end training of the encoder, head, and detection stages. Descriptors are obtained by grid-sampling the descriptor map at each keypoint location.
-
-The model is trained with synthetic planar-homography supervision plus an epipolar (geometry-aware) term from real subsequent frames, as illustrated below.
-
-<p align="center">
-  <img src="assets/method_pipeline.png" width="92%" alt="HyKey training pipeline">
-</p>
-
----
-
 ## 💾 Dataset
+
+**The dataset repository was updated on 08/08/26 to make it easier to download and fix a scene labelling issue. If you downloaded the data before this date, the lighting conditions for the scenes are swapped and lap actually means surg and vice versa**
 
 Download the HyKey Dataset and extract it to `data/spectral/`. No preprocessing step is needed; the dataset ships with calibration and poses pre-computed.
 
 > **Download:** [https://doi.org/10.5522/04/32793294](https://doi.org/10.5522/04/32793294) (DOI: `10.5522/04/32793294`)
-
-<p align="center">
-  <img src="assets/dataset_thumbnail.png" width="92%" alt="HyKey Dataset gallery">
-</p>
 
 *Ex-vivo ovine kidneys and livers, laparoscopic and surgical lighting, hemispherical-sweep and trocar trajectories.*
 
@@ -115,7 +83,7 @@ data/spectral/
 │   └── homographies/               # RGB<->HSI registration homographies
 │       ├── H_hsi2rgb.npy
 │       └── H_rgb2hsi.npy
-├── K4_lap_close_acquisition_2024-08-28_22-48-52/
+├── K4_surg_close_acquisition_2024-08-28_22-48-52/
 │   ├── HSI/00000000.npy ...        # raw XIMEA hyperspectral mosaics
 │   ├── RGB/00000000.npy ...        # raw RGB frames
 │   ├── hsi_poses.csv               # hand-eye-calibrated HSI camera poses
@@ -126,27 +94,29 @@ data/spectral/
 └── HE_calib_*_acquisition_<timestamp>/   # raw ChArUco calibration captures (only needed to recalibrate; see docs/RECALIBRATION.md)
 ```
 
-Calibration lives inside the dataset root, so it is loaded automatically as `<spectral_data_root>/calibration` (override with the `calibration_dir` config key if needed). The `HE_calib_*` folders are the raw calibration captures used to produce `calibration/`; they are not needed for training/evaluation/inference and are skipped by the data loader.
-
 ### Naming conventions
 
 Folder names: `{organ}_{lighting}_{trajectory}_acquisition_<timestamp>`
 
-| Field | Tag | Meaning |
-|---|---|---|
-| **Organ** | `K1`-`K4` | Ovine kidney, 2024-08-28 (train/val/test) |
-| | `K5`-`K7` | Ovine kidney, 2024-08-16 (train only) |
-| | `L1`-`L2` | Ovine liver, 2024-08-28 (train/test) |
-| | `L3` | Ovine liver, 2024-08-16 (train only) |
-| **Lighting** | `lap` | Laparoscopic light only |
-| | `surg` | Surgical overhead lights |
-| **Trajectory** | `close` | Hemispherical sweep, close range (~10-15 cm) |
-| | `far` | Hemispherical sweep, extended range (~20-30 cm) |
-| | `trocar` | Trocar (RCM) trajectory |
 
-**Splits** (`configs/test_set.yaml`, `configs/validation_set.yaml`): test = `K4_*` + `L1_*`; val = `K2_*`; K5-K7 and L3 are training only.
+| Field          | Tag       | Meaning                                         |
+| -------------- | --------- | ----------------------------------------------- |
+| **Organ**      | `K1`-`K4` | Ovine kidney, 2024-08-28 (train/val/test)       |
+|                | `K5`-`K7` | Ovine kidney, 2024-08-16 (train only)           |
+|                | `L1`-`L2` | Ovine liver, 2024-08-28 (train/test)            |
+|                | `L3`      | Ovine liver, 2024-08-16 (train only)            |
+| **Lighting**   | `lap`     | Laparoscopic light only                         |
+|                | `surg`    | Surgical overhead lights                        |
+| **Trajectory** | `close`   | Hemispherical sweep, close range (~10-15 cm)    |
+|                | `far`     | Hemispherical sweep, extended range (~20-30 cm) |
+|                | `trocar`  | Trocar (RCM) trajectory                         |
+
+
+**Splits** (`configs/test_set.yaml`, `configs/validation_set.yaml`): test = `K4_`* + `L1_*`; val = `K2_*`; K5-K7 and L3 are training only.
 
 ---
+
+
 
 ## 🏋️ Training
 
@@ -174,6 +144,8 @@ dataset:
 
 ---
 
+
+
 ## 📊 Evaluation
 
 ```bash
@@ -182,9 +154,7 @@ python evaluate_hykey.py --config configs/evaluate_hykey.yaml
 
 Reports planar MMA (pixel thresholds) and relative-pose mAA (degree thresholds). Set checkpoint dir under `evaluation.model_checkpoint_dirs`.
 
-<p align="center">
-  <img src="assets/matches_planar.png" width="92%" alt="Planar correspondences">
-</p>
+
 
 ---
 
@@ -192,29 +162,14 @@ Reports planar MMA (pixel thresholds) and relative-pose mAA (degree thresholds).
 
 ```bash
 python infer_pair.py \
-    --acquisition ./data/spectral/K4_lap_close_acquisition_2024-08-28_22-48-52 \
+    --acquisition ./data/spectral/K4_surg_close_acquisition_2024-08-28_22-48-52 \
     --checkpoint ./checkpoints/hykey \
     --idx 0 --pair planar --output matches.png
 ```
 
 `--pair planar` uses a synthetic homography warp; `--pair nonplanar` uses a real subsequent frame.
 
-<p align="center">
-  <img src="assets/epipolar_matches.gif" width="80%" alt="Epipolar matches under real camera motion">
-</p>
 
----
-
-## 🎛️ Checkpoints
-
-The default model ships bundled with the [HyKey Dataset](https://doi.org/10.5522/04/32793294) - extracting the dataset places it under `checkpoints/hykey/`, holding `hykey.ckpt` and the training `config.yaml` (so the exact architecture is rebuilt on load).
-
-| Checkpoint | Input | Epipolar | Recipe / notes |
-|---|---|---|---|
-| `hykey` | raw HSI | yes | **Default** |
-
-
-**More model weights will be released here soon.** As each becomes available, download it and copy it into its own subfolder under `checkpoints/` (e.g. `checkpoints/<name>/`), then point `evaluation.model_checkpoint_dirs` in `configs/evaluate_hykey.yaml` at that folder.
 
 ---
 
@@ -223,37 +178,6 @@ The default model ships bundled with the [HyKey Dataset](https://doi.org/10.5522
 Pre-computed calibration ships inside the dataset under `data/spectral/calibration/`. **No recalibration step is needed to run the dataset.** It is loaded automatically as `<spectral_data_root>/calibration` (override via the `calibration_dir` config key).
 
 If you want to recalibrate for your own hardware (or reproduce `calibration/` from the raw `HE_calib_*` ChArUco captures shipped with the dataset), see **[docs/RECALIBRATION.md](docs/RECALIBRATION.md)**.
-
----
-
-## 📝 Citation
-
-```bibtex
-@article{saikia2026hykey,
-  title   = {HyKey: Hyperspectral Keypoint Detection and Matching in Minimally Invasive Surgery},
-  author  = {Saikia, Alexander and Di Vece, Chiara and Mao, Zhehua and Bonilla, Sierra and
-             He, Chloe and Ramalhinho, Joao and Czempiel, Tobias and Bano, Sophia and
-             Stoyanov, Danail},
-  journal = {International Journal of Computer Assisted Radiology and Surgery},
-  year    = {2026},
-  note    = {IPCAI 2026}
-}
-```
-
-```bibtex
-@article{saikia2025robotic,
-  title     = {Robotic Arm Platform for Multi-View Image Acquisition and 3D Reconstruction
-               in Minimally Invasive Surgery},
-  author    = {Saikia, Alexander and Di Vece, Chiara and Bonilla, Sierra and He, Chloe and
-               Magbagbeola, Morenike and Mennillo, Laurent and Czempiel, Tobias and
-               Bano, Sophia and Stoyanov, Danail},
-  journal   = {IEEE Robotics and Automation Letters},
-  year      = {2025},
-  publisher = {IEEE}
-}
-```
-
----
 
 ## License
 

@@ -1,10 +1,10 @@
-# Validation scenes 
+# Validation scenes
 # Folder names must match directories under `spectral_data_root`.
 spectral:
   acquisition_folders:
-    - "K2_lap_far_acquisition_2024-08-28_21-38-47"
-    - "K2_lap_trocar_acquisition_2024-08-28_21-18-19"
-    - "K2_lap_close_acquisition_2024-08-28_21-22-25"
-    - "K2_surg_far_acquisition_2024-08-28_21-34-24"
-    - "K2_surg_trocar_acquisition_2024-08-28_21-14-43"
-    - "K2_surg_close_acquisition_2024-08-28_21-26-46"
+    - "K2_lap_close_acquisition_2024-08-28_21-26-46"
+    - "K2_lap_far_acquisition_2024-08-28_21-34-24"
+    - "K2_lap_trocar_acquisition_2024-08-28_21-14-43"
+    - "K2_surg_close_acquisition_2024-08-28_21-22-25"
+    - "K2_surg_far_acquisition_2024-08-28_21-38-47"
+    - "K2_surg_trocar_acquisition_2024-08-28_21-18-19"

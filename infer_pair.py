@@ -8,7 +8,7 @@ Two pairing modes:
 
 Example:
     python infer_pair.py \
-        --acquisition ./data/spectral/K4_lap_close_acquisition_2024-08-28_22-48-52 \
+        --acquisition ./data/spectral/K4_surg_close_acquisition_2024-08-28_22-48-52 \
         --checkpoint ./checkpoints/hykey \
         --idx 0 --pair planar --output matches.png
 """
